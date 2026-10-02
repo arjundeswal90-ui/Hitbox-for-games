@@ -5,7 +5,7 @@ local Workspace = game:GetService("Workspace")
 
 -- Configuration Variables
 local HitboxEnabled = false
-local HitboxSize = 8
+local HitboxSize = 10
 local OriginalBallSizes = {}
 local BlueHighlights = {}
 
@@ -70,90 +70,168 @@ MinusBtn.Size = UDim2.new(0.35, 0, 0, 28)
 MinusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
 MinusBtn.Text = "-"
 MinusBtn.Font = Enum.Font.SourceSansBold
+MinusBtn.TextColor3 = Color3.fromRGB(25-- TF26 Ultra Ball Hitbox Expander (Weld & Touch Bypass Engine)
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- State Variables
+local HitboxEnabled = false
+local HitboxSize = 12
+local CreatedHitboxes = {}
+
+-- Create Custom GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TF26HitboxBypass"
+ScreenGui.Parent = CoreGui or LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+MainFrame.Position = UDim2.new(0.05, 0, 0.35, 0)
+MainFrame.Size = UDim2.new(0, 220, 0, 160)
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+local Title = Instance.new("TextLabel")
+Title.Parent = MainFrame
+Title.Size = UDim2.new(1, 0, 0, 32)
+Title.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+Title.Text = "TF26 Hitbox (Bypass Engine)"
+Title.Font = Enum.Font.SourceSansBold
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 15
+Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 10)
+
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Parent = MainFrame
+ToggleBtn.Position = UDim2.new(0.1, 0, 0.28, 0)
+ToggleBtn.Size = UDim2.new(0.8, 0, 0, 32)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ToggleBtn.Text = "Hitbox: OFF"
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.TextSize = 15
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
+
+local SizeLabel = Instance.new("TextLabel")
+SizeLabel.Parent = MainFrame
+SizeLabel.Position = UDim2.new(0.1, 0, 0.55, 0)
+SizeLabel.Size = UDim2.new(0.8, 0, 0, 20)
+SizeLabel.BackgroundTransparency = 1
+SizeLabel.Text = "Hitbox Size: " .. tostring(HitboxSize)
+SizeLabel.Font = Enum.Font.SourceSans
+SizeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SizeLabel.TextSize = 14
+
+local MinusBtn = Instance.new("TextButton")
+MinusBtn.Parent = MainFrame
+MinusBtn.Position = UDim2.new(0.1, 0, 0.72, 0)
+MinusBtn.Size = UDim2.new(0.35, 0, 0, 28)
+MinusBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+MinusBtn.Text = "-"
+MinusBtn.Font = Enum.Font.SourceSansBold
 MinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinusBtn.TextSize = 18
 Instance.new("UICorner", MinusBtn).CornerRadius = UDim.new(0, 6)
 
--- Increase Button (+)
 local PlusBtn = Instance.new("TextButton")
 PlusBtn.Parent = MainFrame
 PlusBtn.Position = UDim2.new(0.55, 0, 0.72, 0)
 PlusBtn.Size = UDim2.new(0.35, 0, 0, 28)
-PlusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+PlusBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 PlusBtn.Text = "+"
 PlusBtn.Font = Enum.Font.SourceSansBold
 PlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 PlusBtn.TextSize = 18
 Instance.new("UICorner", PlusBtn).CornerRadius = UDim.new(0, 6)
 
--- Helper function to find the football object in Workspace
-local function getBall()
-	for _, v in pairs(Workspace:GetDescendants()) do
-		if (v.Name:lower():sub(1,4) == "ball" or v.Name == "Football" or v:IsA("Part") and v.Name:find("Ball")) and v:IsA("BasePart") then
-			return v
-		end
-	end
-	return nil
-end
-
--- Function to Apply Blue Highlight Area
-local function addHighlight(ball)
-	if not BlueHighlights[ball] then
-		local hl = Instance.new("SelectionBox")
-		hl.Name = "BlueHitboxHighlight"
-		hl.Color3 = Color3.fromRGB(0, 150, 255) -- Blue Color
-		hl.LineThickness = 0.08
-		hl.Adornee = ball
-		hl.Parent = ball
-		
-		local highlightGlow = Instance.new("Highlight")
-		highlightGlow.Name = "BlueGlow"
-		highlightGlow.FillColor = Color3.fromRGB(0, 120, 255)
-		highlightGlow.FillTransparency = 0.65 -- Light Blue Fill
-		highlightGlow.OutlineColor = Color3.fromRGB(0, 220, 255)
-		highlightGlow.Parent = ball
-		
-		BlueHighlights[ball] = {hl, highlightGlow}
-	end
-end
-
--- Function to Remove Highlight
-local function removeHighlight(ball)
-	if BlueHighlights[ball] then
-		for _, v in pairs(BlueHighlights[ball]) do
-			pcall(function() v:Destroy() end)
-		end
-		BlueHighlights[ball] = nil
-	end
-end
-
--- Main Loop
-RunService.RenderStepped:Connect(function()
-	local ball = getBall()
-	if ball then
-		if not OriginalBallSizes[ball] then
-			OriginalBallSizes[ball] = ball.Size
-		end
-
-		if HitboxEnabled then
-			ball.Size = Vector3.new(HitboxSize, HitboxSize, HitboxSize)
-			ball.CanCollide = false -- Prevents physics glitch while kicking
-			addHighlight(ball)
-		else
-			if OriginalBallSizes[ball] then
-				ball.Size = OriginalBallSizes[ball]
+-- Find All Football Parts
+local function getAllBalls()
+	local balls = {}
+	for _, obj in pairs(Workspace:GetDescendants()) do
+		if obj:IsA("BasePart") or obj:IsA("MeshPart") then
+			local name = obj.Name:lower()
+			if name:find("ball") or name:find("football") or name:find("soccer") or obj:FindFirstChild("TouchInterest") then
+				if not obj:IsDescendantOf(Players) and obj.Size.Magnitude < 10 then
+					table.insert(balls, obj)
+				end
 			end
-			removeHighlight(ball)
 		end
+	end
+	return balls
+end
+
+-- Create Translucent Blue Custom Hitbox Part Attached To Ball
+local function createCustomHitbox(realBall)
+	if CreatedHitboxes[realBall] and CreatedHitboxes[realBall].Parent then
+		return CreatedHitboxes[realBall]
+	end
+
+	local fakeHitbox = Instance.new("Part")
+	fakeHitbox.Name = "TF26_Blue_Hitbox"
+	fakeHitbox.Shape = Enum.PartType.Ball
+	fakeHitbox.Size = Vector3.new(HitboxSize, HitboxSize, HitboxSize)
+	fakeHitbox.Material = Enum.Material.Neon
+	fakeHitbox.Color = Color3.fromRGB(0, 150, 255)
+	fakeHitbox.Transparency = 0.65
+	fakeHitbox.CanCollide = false
+	fakeHitbox.Anchored = false
+	fakeHitbox.Massless = true
+
+	-- Selection Box Outline
+	local box = Instance.new("SelectionBox")
+	box.Color3 = Color3.fromRGB(0, 230, 255)
+	box.LineThickness = 0.05
+	box.Adornee = fakeHitbox
+	box.Parent = fakeHitbox
+
+	fakeHitbox.Parent = Workspace
+	CreatedHitboxes[realBall] = fakeHitbox
+	return fakeHitbox
+end
+
+-- Render Frame Lock Loop
+RunService.RenderStepped:Connect(function()
+	if HitboxEnabled then
+		local balls = getAllBalls()
+		for _, realBall in pairs(balls) do
+			local hitbox = createCustomHitbox(realBall)
+			hitbox.Size = Vector3.new(HitboxSize, HitboxSize, HitboxSize)
+			hitbox.CFrame = realBall.CFrame
+			
+			-- Re-trigger Ball Touch when player steps into Blue Area
+			local char = LocalPlayer.Character
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				local dist = (char.HumanoidRootPart.Position - realBall.Position).Magnitude
+				if dist <= (HitboxSize / 2) + 2 then
+					pcall(function()
+						firetouchinterest(char.HumanoidRootPart, realBall, 0)
+						firetouchinterest(char.HumanoidRootPart, realBall, 1)
+					end)
+				end
+			end
+		end
+	else
+		for realBall, hitbox in pairs(CreatedHitboxes) do
+			if hitbox then
+				hitbox:Destroy()
+			end
+		end
+		CreatedHitboxes = {}
 	end
 end)
 
--- UI Click Events
+-- UI Click Handlers
 ToggleBtn.MouseButton1Click:Connect(function()
 	HitboxEnabled = not HitboxEnabled
 	if HitboxEnabled then
 		ToggleBtn.Text = "Hitbox: ON"
-		ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+		ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
 	else
 		ToggleBtn.Text = "Hitbox: OFF"
 		ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
@@ -161,13 +239,13 @@ ToggleBtn.MouseButton1Click:Connect(function()
 end)
 
 PlusBtn.MouseButton1Click:Connect(function()
-	HitboxSize = HitboxSize + 2
+	HitboxSize = HitboxSize + 4
 	SizeLabel.Text = "Hitbox Size: " .. tostring(HitboxSize)
 end)
 
 MinusBtn.MouseButton1Click:Connect(function()
-	if HitboxSize > 2 then
-		HitboxSize = HitboxSize - 2
+	if HitboxSize > 4 then
+		HitboxSize = HitboxSize - 4
 		SizeLabel.Text = "Hitbox Size: " .. tostring(HitboxSize)
 	end
 end)
