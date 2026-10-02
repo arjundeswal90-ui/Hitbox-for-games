@@ -1,0 +1,169 @@
+-- TF26 Flames Hub Master Engine (Universal Object Tracker)
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local HitboxEnabled = false
+local HitboxSize = 12
+local ActiveHitboxes = {}
+
+-- UI Build
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "FlamesHubMasterUI"
+ScreenGui.Parent = CoreGui or LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+MainFrame.Position = UDim2.new(0.05, 0, 0.35, 0)
+MainFrame.Size = UDim2.new(0, 220, 0, 160)
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+local Title = Instance.new("TextLabel")
+Title.Parent = MainFrame
+Title.Size = UDim2.new(1, 0, 0, 32)
+Title.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+Title.Text = "Flames Hub Master Engine"
+Title.Font = Enum.Font.SourceSansBold
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 14
+Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 10)
+
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Parent = MainFrame
+ToggleBtn.Position = UDim2.new(0.1, 0, 0.28, 0)
+ToggleBtn.Size = UDim2.new(0.8, 0, 0, 32)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ToggleBtn.Text = "Hitbox: OFF"
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.TextSize = 15
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
+
+local SizeLabel = Instance.new("TextLabel")
+SizeLabel.Parent = MainFrame
+SizeLabel.Position = UDim2.new(0.1, 0, 0.55, 0)
+SizeLabel.Size = UDim2.new(0.8, 0, 0, 20)
+SizeLabel.BackgroundTransparency = 1
+SizeLabel.Text = "Hitbox Size: " .. tostring(HitboxSize)
+SizeLabel.Font = Enum.Font.SourceSans
+SizeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SizeLabel.TextSize = 14
+
+local MinusBtn = Instance.new("TextButton")
+MinusBtn.Parent = MainFrame
+MinusBtn.Position = UDim2.new(0.1, 0, 0.72, 0)
+MinusBtn.Size = UDim2.new(0.35, 0, 0, 28)
+MinusBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+MinusBtn.Text = "-"
+MinusBtn.Font = Enum.Font.SourceSansBold
+MinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinusBtn.TextSize = 18
+Instance.new("UICorner", MinusBtn).CornerRadius = UDim.new(0, 6)
+
+local PlusBtn = Instance.new("TextButton")
+PlusBtn.Parent = MainFrame
+PlusBtn.Position = UDim2.new(0.55, 0, 0.72, 0)
+PlusBtn.Size = UDim2.new(0.35, 0, 0, 28)
+PlusBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+PlusBtn.Text = "+"
+PlusBtn.Font = Enum.Font.SourceSansBold
+PlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlusBtn.TextSize = 18
+Instance.new("UICorner", PlusBtn).CornerRadius = UDim.new(0, 6)
+
+-- Deep Scan for All Potential Ball Objects
+local function findAllBalls()
+	local found = {}
+	for _, instance in pairs(Workspace:GetDescendants()) do
+		if instance:IsA("BasePart") or instance:IsA("MeshPart") then
+			local n = instance.Name:lower()
+			if (n:find("ball") or n:find("football") or n:find("soccer") or n == "tp" or instance:FindFirstChildOfClass("TouchTransmitter")) then
+				if not instance:IsDescendantOf(Players) and instance.Name ~= "Flames_Universal_Part" then
+					table.insert(found, instance)
+				end
+			end
+		end
+	end
+	return found
+end
+
+-- Create Translucent Visual Part
+local function createOrGetVisual(targetPart)
+	if ActiveHitboxes[targetPart] and ActiveHitboxes[targetPart].Parent then
+		return ActiveHitboxes[targetPart]
+	end
+
+	local vis = Instance.new("Part")
+	vis.Name = "Flames_Universal_Part"
+	vis.Shape = Enum.PartType.Ball
+	vis.Material = Enum.Material.ForceField
+	vis.Color = Color3.fromRGB(0, 160, 255)
+	vis.Transparency = 0.35
+	vis.CanCollide = false
+	vis.Anchored = true
+	vis.CastShadow = false
+	vis.Parent = Workspace
+
+	ActiveHitboxes[targetPart] = vis
+	return vis
+end
+
+-- Render Execution
+RunService.RenderStepped:Connect(function()
+	if HitboxEnabled then
+		local ballList = findAllBalls()
+		for _, ballPart in pairs(ballList) do
+			local visual = createOrGetVisual(ballPart)
+			visual.Size = Vector3.new(HitboxSize, HitboxSize, HitboxSize)
+			visual.CFrame = ballPart.CFrame
+
+			-- Local Physics Trigger
+			local char = LocalPlayer.Character
+			if char and char:FindFirstChild("HumanoidRootPart") then
+				local dist = (char.HumanoidRootPart.Position - ballPart.Position).Magnitude
+				if dist <= (HitboxSize / 2) + 2 then
+					pcall(function()
+						firetouchinterest(char.HumanoidRootPart, ballPart, 0)
+						firetouchinterest(char.HumanoidRootPart, ballPart, 1)
+					end)
+				end
+			end
+		end
+	else
+		for original, visPart in pairs(ActiveHitboxes) do
+			if visPart then
+				pcall(function() visPart:Destroy() end)
+			end
+		end
+		ActiveHitboxes = {}
+	end
+end)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+	HitboxEnabled = not HitboxEnabled
+	if HitboxEnabled then
+		ToggleBtn.Text = "Hitbox: ON"
+		ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 80)
+	else
+		ToggleBtn.Text = "Hitbox: OFF"
+		ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+	end
+end)
+
+PlusBtn.MouseButton1Click:Connect(function()
+	HitboxSize = HitboxSize + 4
+	SizeLabel.Text = "Hitbox Size: " .. tostring(HitboxSize)
+end)
+
+MinusBtn.MouseButton1Click:Connect(function()
+	if HitboxSize > 4 then
+		HitboxSize = HitboxSize - 4
+		SizeLabel.Text = "Hitbox Size: " .. tostring(HitboxSize)
+	end
+end)
