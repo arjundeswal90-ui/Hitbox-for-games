@@ -1,0 +1,173 @@
+-- TF26 Roblox Ball Hitbox Expander GUI (Blue Highlighted)
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local Workspace = game:GetService("Workspace")
+
+-- Configuration Variables
+local HitboxEnabled = false
+local HitboxSize = 8
+local OriginalBallSizes = {}
+local BlueHighlights = {}
+
+-- Create Draggable ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TF26BallHitboxGUI"
+ScreenGui.Parent = CoreGui or game.Players.LocalPlayer:WaitForChild("PlayerGui")
+ScreenGui.ResetOnSpawn = false
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+MainFrame.Position = UDim2.new(0.05, 0, 0.4, 0)
+MainFrame.Size = UDim2.new(0, 220, 0, 150)
+MainFrame.Active = true
+MainFrame.Draggable = true
+
+local UICorner = Instance.new("UICorner", MainFrame)
+UICorner.CornerRadius = UDim.new(0, 10)
+
+local Title = Instance.new("TextLabel")
+Title.Parent = MainFrame
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+Title.Text = "TF26 Ball Hitbox"
+Title.Font = Enum.Font.SourceSansBold
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 16
+
+local TitleCorner = Instance.new("UICorner", Title)
+TitleCorner.CornerRadius = UDim.new(0, 10)
+
+-- Toggle Button (ON / OFF)
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Parent = MainFrame
+ToggleBtn.Position = UDim2.new(0.1, 0, 0.28, 0)
+ToggleBtn.Size = UDim2.new(0.8, 0, 0, 32)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+ToggleBtn.Text = "Hitbox: OFF"
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.TextSize = 15
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
+
+-- Size Controls Label
+local SizeLabel = Instance.new("TextLabel")
+SizeLabel.Parent = MainFrame
+SizeLabel.Position = UDim2.new(0.1, 0, 0.55, 0)
+SizeLabel.Size = UDim2.new(0.8, 0, 0, 20)
+SizeLabel.BackgroundTransparency = 1
+SizeLabel.Text = "Hitbox Size: " .. tostring(HitboxSize)
+SizeLabel.Font = Enum.Font.SourceSans
+SizeLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+SizeLabel.TextSize = 14
+
+-- Decrease Button (-)
+local MinusBtn = Instance.new("TextButton")
+MinusBtn.Parent = MainFrame
+MinusBtn.Position = UDim2.new(0.1, 0, 0.72, 0)
+MinusBtn.Size = UDim2.new(0.35, 0, 0, 28)
+MinusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+MinusBtn.Text = "-"
+MinusBtn.Font = Enum.Font.SourceSansBold
+MinusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+MinusBtn.TextSize = 18
+Instance.new("UICorner", MinusBtn).CornerRadius = UDim.new(0, 6)
+
+-- Increase Button (+)
+local PlusBtn = Instance.new("TextButton")
+PlusBtn.Parent = MainFrame
+PlusBtn.Position = UDim2.new(0.55, 0, 0.72, 0)
+PlusBtn.Size = UDim2.new(0.35, 0, 0, 28)
+PlusBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+PlusBtn.Text = "+"
+PlusBtn.Font = Enum.Font.SourceSansBold
+PlusBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlusBtn.TextSize = 18
+Instance.new("UICorner", PlusBtn).CornerRadius = UDim.new(0, 6)
+
+-- Helper function to find the football object in Workspace
+local function getBall()
+	for _, v in pairs(Workspace:GetDescendants()) do
+		if (v.Name:lower():sub(1,4) == "ball" or v.Name == "Football" or v:IsA("Part") and v.Name:find("Ball")) and v:IsA("BasePart") then
+			return v
+		end
+	end
+	return nil
+end
+
+-- Function to Apply Blue Highlight Area
+local function addHighlight(ball)
+	if not BlueHighlights[ball] then
+		local hl = Instance.new("SelectionBox")
+		hl.Name = "BlueHitboxHighlight"
+		hl.Color3 = Color3.fromRGB(0, 150, 255) -- Blue Color
+		hl.LineThickness = 0.08
+		hl.Adornee = ball
+		hl.Parent = ball
+		
+		local highlightGlow = Instance.new("Highlight")
+		highlightGlow.Name = "BlueGlow"
+		highlightGlow.FillColor = Color3.fromRGB(0, 120, 255)
+		highlightGlow.FillTransparency = 0.65 -- Light Blue Fill
+		highlightGlow.OutlineColor = Color3.fromRGB(0, 220, 255)
+		highlightGlow.Parent = ball
+		
+		BlueHighlights[ball] = {hl, highlightGlow}
+	end
+end
+
+-- Function to Remove Highlight
+local function removeHighlight(ball)
+	if BlueHighlights[ball] then
+		for _, v in pairs(BlueHighlights[ball]) do
+			pcall(function() v:Destroy() end)
+		end
+		BlueHighlights[ball] = nil
+	end
+end
+
+-- Main Loop
+RunService.RenderStepped:Connect(function()
+	local ball = getBall()
+	if ball then
+		if not OriginalBallSizes[ball] then
+			OriginalBallSizes[ball] = ball.Size
+		end
+
+		if HitboxEnabled then
+			ball.Size = Vector3.new(HitboxSize, HitboxSize, HitboxSize)
+			ball.CanCollide = false -- Prevents physics glitch while kicking
+			addHighlight(ball)
+		else
+			if OriginalBallSizes[ball] then
+				ball.Size = OriginalBallSizes[ball]
+			end
+			removeHighlight(ball)
+		end
+	end
+end)
+
+-- UI Click Events
+ToggleBtn.MouseButton1Click:Connect(function()
+	HitboxEnabled = not HitboxEnabled
+	if HitboxEnabled then
+		ToggleBtn.Text = "Hitbox: ON"
+		ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 180, 80)
+	else
+		ToggleBtn.Text = "Hitbox: OFF"
+		ToggleBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+	end
+end)
+
+PlusBtn.MouseButton1Click:Connect(function()
+	HitboxSize = HitboxSize + 2
+	SizeLabel.Text = "Hitbox Size: " .. tostring(HitboxSize)
+end)
+
+MinusBtn.MouseButton1Click:Connect(function()
+	if HitboxSize > 2 then
+		HitboxSize = HitboxSize - 2
+		SizeLabel.Text = "Hitbox Size: " .. tostring(HitboxSize)
+	end
+end)
